@@ -1,48 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, user-scalable=no" />
+    <style>
+        body {
+            overflow-x: hidden;
+            overflow-y: hidden;
+        }
+        canvas {
+           border: 1px solid black;
+        }
+    </style>
 </head>
 <body>
-
-<canvas width="170" height="230" style="border: 1px solid black"></canvas>
+<canvas></canvas>
 
 <script>
     let baseUrl = '/';
 
-
     let canvas = document.querySelector("canvas");
     let ctx = canvas.getContext("2d");
     var position, target;
+    var dimension;
+
+    function onResize() {
+        canvas.width = window.innerWidth - 2 * canvas.offsetLeft
+        canvas.height = window.innerHeight - 2 * canvas.offsetTop
+        redraw()
+    }
 
     function redraw() {
+        if(!dimension) {
+            return;
+        }
+
         ctx.clearRect(0, 0, canvas.width, canvas.height)
 
+        function recalculate(p) {
+            return [
+                p[0] / dimension[0] * canvas.width,
+                p[1] / dimension[1] * canvas.height
+            ]
+        }
+
+
         if(position) {
+            let point = recalculate(position)
             ctx.beginPath();
-            ctx.arc(position[0], position[1], 5, 0, 2 * Math.PI);
+            ctx.arc(point[0], point[1], 5, 0, 2 * Math.PI);
             ctx.stroke();
         }
 
         if(target) {
+            let point = recalculate(target)
             ctx.beginPath();
-            ctx.arc(target[0], target[1], 5, 0, 2 * Math.PI);
-            ctx.fill()
+            ctx.arc(point[0], point[1], 5, 0, 2 * Math.PI);
             ctx.stroke();
+            ctx.fill()
         }
     }
 
     canvas.onclick = () => {
+        if(!dimension) {
+            return;
+        }
+
         var rect = canvas.getBoundingClientRect();
-        var x = event.clientX - rect.left;
-        var y = event.clientY - rect.top;
+        var x = parseInt((event.clientX - rect.left) / canvas.width * dimension[0]);
+        var y = parseInt((event.clientY - rect.top) / canvas.height * dimension[1]);
 
         let xhr = new XMLHttpRequest()
         xhr.open('PUT', `${baseUrl}api/set_target`, true);
-        xhr.onload = () => {
-            console.log(xhr.responseText)
-        }
         xhr.send(JSON.stringify({
            X: x,
            Y: y
@@ -63,6 +92,14 @@
         target = [data['X'], data['Y']]
         redraw()
     });
+
+    source.addEventListener('dimension', (event) => {
+        let data = JSON.parse(event.data);
+        dimension = [data['Width'], data['Height']]
+    })
+
+    window.onresize = onResize
+    onResize()
 </script>
 
 </body>

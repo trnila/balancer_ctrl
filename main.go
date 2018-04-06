@@ -1,4 +1,3 @@
-//package balancerapi
 package main
 
 import "fmt"
@@ -12,7 +11,7 @@ import (
 	"net/http"
 	"encoding/json"
 	"time"
-	"github.com/alexandrevicenzi/go-sse"
+	"github.com/trnila/go-sse"
 )
 
 
@@ -28,6 +27,9 @@ const CMD_GETPID = CMD_GETTER | CMD_PID;
 const CMD_GETDIM = CMD_GETTER | (CMD_PID + 1);
 
 const CMD_MEASUREMENT = 0 | CMD_RESPONSE;
+
+var Width int32 = 0
+var Height int32 = 0
 
 type Measurement struct {
 	CX, CY float32
@@ -54,6 +56,10 @@ type SetPositionCommand struct {
 	X, Y int32
 }
 
+type DimensionResponse struct {
+	Width, Height int32
+}
+
 type Cmd struct {
 	ID byte
 }
@@ -71,7 +77,7 @@ type Event struct {
 
 func producer(measurements chan <- Measurement, events chan <- Event, commands chan interface{}) {
 	options := serial.OpenOptions {
-		PortName:        "/dev/ttyUSB0",
+		PortName:        "/dev/ttyAMA0",
 		BaudRate:        460800,
 		DataBits:        8,
 		StopBits:        1,
@@ -126,7 +132,11 @@ func producer(measurements chan <- Measurement, events chan <- Event, commands c
 		cmd := decoded[0]
 		rr := bytes.NewReader(decoded[1:])
 
-		if cmd == CMD_RESPONSE | CMD_GETPOS {
+		if cmd == CMD_MEASUREMENT | CMD_RESPONSE {
+			t := Measurement{}
+			err = binary.Read(rr, binary.LittleEndian, &t)
+			measurements <- t
+		} else if cmd == CMD_GETPOS | CMD_RESPONSE {
 			t := TargetPositionResponse{}
 			err = binary.Read(rr, binary.LittleEndian, &t)
 			if err != nil {
@@ -136,10 +146,15 @@ func producer(measurements chan <- Measurement, events chan <- Event, commands c
 				name: "target_position",
 				data: t,
 			}
-		} else if cmd == CMD_RESPONSE | CMD_MEASUREMENT {
-			t := Measurement{}
+		} else if cmd == CMD_GETDIM | CMD_RESPONSE {
+			t := DimensionResponse{}
 			err = binary.Read(rr, binary.LittleEndian, &t)
-			measurements <- t
+			if err != nil {
+				continue
+			}
+
+			Width = t.Width
+			Height = t.Height
 		}
 	}
 }
@@ -173,11 +188,24 @@ func main() {
 	events := make(chan Event, 10)
 	go producer(measurements, events, commands)
 
+	commands <- Cmd{ID:CMD_GETDIM}
+
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/api/set_target", apiHandler)
 
-	s := sse.NewServer(nil)
-	defer s.Shutdown()
+	options := sse.Options{
+		ClientConnected: func(client *sse.Client) {
+			resp := DimensionResponse{Width: Width, Height:Height}
+			b, err := json.Marshal(resp)
+			if err != nil {
+				fmt.Print(err)
+				return
+			}
+
+			client.SendMessage(sse.NewMessage("", string(b), "dimension"))
+		},
+	}
+	s := sse.NewServer(&options)
 
 	http.Handle("/events/", s)
 	go func () {
