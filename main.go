@@ -11,9 +11,16 @@ import (
 	"net/http"
 	"encoding/json"
 	"time"
+	"os"
 	"github.com/trnila/go-sse"
+	"github.com/caarlos0/env"
 )
 
+type config struct {
+	Listen string `env:"CTRL_LISTEN" envDefault:":3000"`
+	SerialPath string `env:"CTRL_SERIAL,required"`
+	BaudRate uint `env:"CTRL_SERIAL_BAUD" envDefault:"460800"`
+}
 
 const CMD_RESPONSE = 128;
 const CMD_GETTER = 64;
@@ -27,6 +34,8 @@ const CMD_GETPID = CMD_GETTER | CMD_PID;
 const CMD_GETDIM = CMD_GETTER | (CMD_PID + 1);
 
 const CMD_MEASUREMENT = 0 | CMD_RESPONSE;
+
+var cfg config
 
 var Width int32 = 0
 var Height int32 = 0
@@ -77,8 +86,8 @@ type Event struct {
 
 func producer(measurements chan <- Measurement, events chan <- Event, commands chan interface{}) {
 	options := serial.OpenOptions {
-		PortName:        "/dev/ttyAMA0",
-		BaudRate:        460800,
+		PortName:        cfg.SerialPath,
+		BaudRate:        cfg.BaudRate,
 		DataBits:        8,
 		StopBits:        1,
 		MinimumReadSize: 4,
@@ -184,6 +193,14 @@ var commands = make(chan interface{}, 10)
 
 
 func main() {
+	err := env.Parse(&cfg)
+	if err != nil {
+		fmt.Printf("%+v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("%+v\n", cfg)
+
 	measurements := make(chan Measurement, 10)
 	events := make(chan Event, 10)
 	go producer(measurements, events, commands)
@@ -234,5 +251,6 @@ func main() {
 		}
 	}()
 
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	fmt.Printf("Listening on %s\n", cfg.Listen)
+	log.Fatal(http.ListenAndServe(cfg.Listen, nil))
 }
