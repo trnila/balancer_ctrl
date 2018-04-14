@@ -159,11 +159,14 @@ func producer(measurements chan <- Measurement, events chan <- Event, commands c
 			t := DimensionResponse{}
 			err = binary.Read(rr, binary.LittleEndian, &t)
 			if err != nil {
+				fmt.Println(err)
 				continue
 			}
 
 			Width = t.Width
 			Height = t.Height
+		} else {
+			fmt.Println("Unknown cmd %s", cmd)
 		}
 	}
 }
