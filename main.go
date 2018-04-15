@@ -163,6 +163,7 @@ func producer(measurements chan <- Measurement, events chan <- Event, commands c
 				continue
 			}
 
+			fmt.Println("Dimension:", t)
 			Width = t.Width
 			Height = t.Height
 		} else {
