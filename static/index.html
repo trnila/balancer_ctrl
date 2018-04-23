@@ -7,6 +7,8 @@
         body {
             overflow-x: hidden;
             overflow-y: hidden;
+            padding: 0px;
+            margin: 0px;
         }
         canvas {
            border: 1px solid black;
@@ -22,7 +24,7 @@
     let canvas = document.querySelector("canvas");
     let ctx = canvas.getContext("2d");
     var position, target;
-    var dimension;
+    var dimension, boundary;
 
     function onResize() {
         canvas.width = window.innerWidth - 2 * canvas.offsetLeft
@@ -35,7 +37,11 @@
             return;
         }
 
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
+	ctx.fillStyle = 'red'
+        ctx.fillRect(0, 0, canvas.width, canvas.height)
+
+	ctx.fillStyle = 'green'
+        ctx.fillRect(boundary[0], boundary[1], canvas.width - 2 * boundary[0], canvas.height - 2 * boundary[1])
 
         function recalculate(p) {
             return [
@@ -57,6 +63,7 @@
             ctx.beginPath();
             ctx.arc(point[0], point[1], 5, 0, 2 * Math.PI);
             ctx.stroke();
+            ctx.fillStyle = 'black'
             ctx.fill()
         }
     }
@@ -96,6 +103,7 @@
     source.addEventListener('dimension', (event) => {
         let data = JSON.parse(event.data);
         dimension = [data['Width'], data['Height']]
+	boundary = [data['X1'], data['Y1'], data['X2'], data['Y2']]
     })
 
     window.onresize = onResize

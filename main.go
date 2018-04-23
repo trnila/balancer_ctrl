@@ -34,11 +34,11 @@ const CMD_GETPID = CMD_GETTER | CMD_PID;
 const CMD_GETDIM = CMD_GETTER | (CMD_PID + 1);
 
 const CMD_MEASUREMENT = 0 | CMD_RESPONSE;
+const CMD_ERROR_RESPONSE = 255;
 
 var cfg config
+var dim DimensionResponse
 
-var Width int32 = 0
-var Height int32 = 0
 
 type Measurement struct {
 	CX, CY float32
@@ -67,6 +67,8 @@ type SetPositionCommand struct {
 
 type DimensionResponse struct {
 	Width, Height int32
+	X1, Y1 int32
+	X2, Y2 int32
 }
 
 type Cmd struct {
@@ -156,16 +158,30 @@ func producer(measurements chan <- Measurement, events chan <- Event, commands c
 				data: t,
 			}
 		} else if cmd == CMD_GETDIM | CMD_RESPONSE {
-			t := DimensionResponse{}
-			err = binary.Read(rr, binary.LittleEndian, &t)
+			err = binary.Read(rr, binary.LittleEndian, &dim)
 			if err != nil {
 				fmt.Println(err)
 				continue
 			}
 
-			fmt.Println("Dimension:", t)
-			Width = t.Width
-			Height = t.Height
+			fmt.Println("Dimension:", dim)
+		} else if cmd == CMD_ERROR_RESPONSE {
+			var size byte
+			err = binary.Read(rr, binary.LittleEndian, &size)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			errorMsg := make([]byte, size)
+
+			err = binary.Read(rr, binary.LittleEndian, &errorMsg)
+			if err != nil {
+				fmt.Println(err)
+				continue
+			}
+
+			fmt.Printf("Error: %s\n", string(errorMsg))
 		} else {
 			fmt.Println("Unknown cmd %s", cmd)
 		}
@@ -216,8 +232,7 @@ func main() {
 
 	options := sse.Options{
 		ClientConnected: func(client *sse.Client) {
-			resp := DimensionResponse{Width: Width, Height:Height}
-			b, err := json.Marshal(resp)
+			b, err := json.Marshal(dim)
 			if err != nil {
 				fmt.Print(err)
 				return
