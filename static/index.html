@@ -40,7 +40,7 @@
         function recalculate(p) {
             return [
                 p[0] / dimension[0] * canvas.width,
-                p[1] / dimension[1] * canvas.height
+                canvas.height - p[1] / dimension[1] * canvas.height
             ]
         }
 
@@ -68,7 +68,7 @@
 
         var rect = canvas.getBoundingClientRect();
         var x = parseInt((event.clientX - rect.left) / canvas.width * dimension[0]);
-        var y = parseInt((event.clientY - rect.top) / canvas.height * dimension[1]);
+        var y = parseInt((canvas.height - event.clientY - rect.top) / canvas.height * dimension[1]);
 
         let xhr = new XMLHttpRequest()
         xhr.open('PUT', `${baseUrl}api/set_target`, true);
