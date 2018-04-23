@@ -17,7 +17,7 @@ import (
 )
 
 type config struct {
-	Listen string `env:"CTRL_LISTEN" envDefault:":3000"`
+	Listen string `env:"CTRL_BIND" envDefault:":3000"`
 	SerialPath string `env:"CTRL_SERIAL,required"`
 	BaudRate uint `env:"CTRL_SERIAL_BAUD" envDefault:"460800"`
 }
