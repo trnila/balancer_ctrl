@@ -56,7 +56,12 @@
             ctx.beginPath();
             ctx.arc(point[0], point[1], 5, 0, 2 * Math.PI);
             ctx.fillStyle = 'black'
+            ctx.shadowColor = '#999';
+            ctx.shadowBlur = 8;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
             ctx.fill()
+            ctx.shadowColor = 'transparent'
         }
 
         if(target) {
