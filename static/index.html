@@ -37,10 +37,10 @@
             return;
         }
 
-	ctx.fillStyle = 'red'
+	    ctx.fillStyle = '#d03c4a'
         ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-	ctx.fillStyle = 'green'
+	    ctx.fillStyle = '#83D671'
         ctx.fillRect(boundary[0], boundary[1], canvas.width - 2 * boundary[0], canvas.height - 2 * boundary[1])
 
         function recalculate(p) {
@@ -55,16 +55,16 @@
             let point = recalculate(position)
             ctx.beginPath();
             ctx.arc(point[0], point[1], 5, 0, 2 * Math.PI);
-            ctx.stroke();
+            ctx.fillStyle = 'black'
+            ctx.fill()
         }
 
         if(target) {
             let point = recalculate(target)
             ctx.beginPath();
+            ctx.strokeStyle = 'black'
             ctx.arc(point[0], point[1], 5, 0, 2 * Math.PI);
             ctx.stroke();
-            ctx.fillStyle = 'black'
-            ctx.fill()
         }
     }
 
