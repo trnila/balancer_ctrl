@@ -46,8 +46,13 @@ func producer(measurements chan <- Measurement, events chan <- Event, commands c
 	timer := time.NewTicker(2 * time.Second)
 	go func() {
 		for {
-			<- timer.C
 			commands <- SimpleCmd(CMD_GETPOS)
+
+			if dim.Width == 0 || dim.Height == 0 {
+				commands <- Cmd{ID:CMD_GETDIM}
+			}
+
+			<- timer.C
 		}
 	}()
 

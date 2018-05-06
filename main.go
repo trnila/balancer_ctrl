@@ -74,8 +74,6 @@ func main() {
 	events := make(chan Event, 10)
 	go producer(measurements, events, commands)
 
-	commands <- Cmd{ID:CMD_GETDIM}
-
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/api/set_target", apiSetTarget)
 
