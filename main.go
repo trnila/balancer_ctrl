@@ -18,6 +18,7 @@ type config struct {
 
 var cfg config
 var dim DimensionResponse
+var lastTarget TargetPositionResponse
 
 type ReqSetPos struct {
 	X, Y int32
@@ -61,6 +62,18 @@ func apiSetTarget(w http.ResponseWriter, r *http.Request) {
 
 var commands = make(chan interface{}, 10)
 
+
+func sendJSON(client *sse.Client, event string, data interface{}) error {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	client.SendMessage(sse.NewMessage("", string(b), event))
+
+	return nil
+}
+
 func main() {
 	err := env.Parse(&cfg)
 	if err != nil {
@@ -79,13 +92,16 @@ func main() {
 
 	options := sse.Options{
 		ClientConnected: func(client *sse.Client) {
-			b, err := json.Marshal(dim)
+			err := sendJSON(client, "dimension", dim)
 			if err != nil {
 				fmt.Print(err)
-				return
 			}
 
-			client.SendMessage(sse.NewMessage("", string(b), "dimension"))
+
+			err = sendJSON(client, "target_position", lastTarget)
+			if err != nil {
+				fmt.Print(err)
+			}
 		},
 	}
 	s := sse.NewServer(&options)
@@ -115,6 +131,13 @@ func startBroadcasting(s *sse.Server, measurements chan Measurement, events chan
 			if err != nil {
 				fmt.Print(err)
 				continue
+			}
+
+			if event.name == "target_position" {
+				target, ok := event.data.(TargetPositionResponse)
+				if ok {
+					lastTarget = target
+				}
 			}
 
 			msg := sse.NewMessage("", string(b), event.name)
