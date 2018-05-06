@@ -74,6 +74,18 @@ func sendJSON(client *sse.Client, event string, data interface{}) error {
 	return nil
 }
 
+func broadcastJSON(server *sse.Server, event string, data interface{}) error {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	server.SendMessage("/events/measurements", sse.NewMessage("", string(b), event))
+
+	return nil
+}
+
+
 func main() {
 	err := env.Parse(&cfg)
 	if err != nil {
@@ -117,22 +129,12 @@ func startBroadcasting(s *sse.Server, measurements chan Measurement, events chan
 	for {
 		select {
 		case measurement := <-measurements:
-			b, err := json.Marshal(measurement)
+			err := broadcastJSON(s, "measurement", measurement)
 			if err != nil {
 				fmt.Print(err)
-				continue
 			}
-
-			msg := sse.NewMessage("", string(b), "measurement")
-			s.SendMessage("/events/measurements", msg)
 
 		case event := <-events:
-			b, err := json.Marshal(event.data)
-			if err != nil {
-				fmt.Print(err)
-				continue
-			}
-
 			if event.name == "target_position" {
 				target, ok := event.data.(TargetPositionResponse)
 				if ok {
@@ -140,8 +142,10 @@ func startBroadcasting(s *sse.Server, measurements chan Measurement, events chan
 				}
 			}
 
-			msg := sse.NewMessage("", string(b), event.name)
-			s.SendMessage("/events/measurements", msg)
+			err := broadcastJSON(s, event.name, event.data)
+			if err != nil {
+				fmt.Print(err)
+			}
 		}
 	}
 }
