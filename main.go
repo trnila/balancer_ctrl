@@ -12,7 +12,7 @@ import (
 
 type config struct {
 	Listen string `env:"CTRL_BIND" envDefault:":3000"`
-	SerialPath string `env:"CTRL_SERIAL,required"`
+	SerialPath string `env:"CTRL_SERIAL"`
 	BaudRate uint `env:"CTRL_SERIAL_BAUD" envDefault:"460800"`
 }
 
@@ -97,7 +97,13 @@ func main() {
 
 	measurements := make(chan Measurement, 10)
 	events := make(chan Event, 10)
-	go producer(measurements, events, commands)
+
+
+	if cfg.SerialPath == "" {
+		go producer_random(measurements, events, commands)
+	} else {
+		go producer(measurements, events, commands)
+	}
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
 	http.HandleFunc("/api/set_target", apiSetTarget)
