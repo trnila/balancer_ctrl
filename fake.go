@@ -13,7 +13,7 @@ func createTargetEvt(X, Y int32) Event {
 	}
 }
 
-func producer_random(measurements chan <- Measurement, events chan <- Event, commands chan interface{}) {
+func producer_random(broker *Broker, events chan <- Event, commands chan interface{}) {
 	dim.Width = 180
 	dim.Height = 230
 
@@ -63,7 +63,7 @@ func producer_random(measurements chan <- Measurement, events chan <- Event, com
 			meas.POSY = float32(float64(targetY) + y * float64(sign) + rand.NormFloat64())
 
 			if meas.POSX >= 0 && meas.POSX < float32(dim.Width) && meas.POSY >= 0 && meas.POSY < float32(dim.Height) {
-				measurements <- meas
+				broker.Broadcast(meas)
 			}
 
 			time.Sleep(20 * time.Millisecond)

@@ -14,6 +14,7 @@ type config struct {
 	Listen string `env:"CTRL_BIND" envDefault:":3000"`
 	SerialPath string `env:"CTRL_SERIAL"`
 	BaudRate uint `env:"CTRL_SERIAL_BAUD" envDefault:"460800"`
+	MulticastIPv6 string `env:"CTRL_MULTICAST"`
 }
 
 var cfg config
@@ -92,17 +93,23 @@ func main() {
 		fmt.Printf("%+v\n", err)
 		os.Exit(1)
 	}
-
 	fmt.Printf("%+v\n", cfg)
 
-	measurements := make(chan Measurement, 10)
+	broker := NewBroker()
+	go broker.Start()
+
+	if len(cfg.MulticastIPv6) > 0 {
+		go startMulticast(cfg.MulticastIPv6, broker.Subscribe())
+	}
+
+	measurements := broker.Subscribe()
 	events := make(chan Event, 10)
 
 
 	if cfg.SerialPath == "" {
-		go producer_random(measurements, events, commands)
+		go producer_random(broker, events, commands)
 	} else {
-		go producer(measurements, events, commands)
+		go producer(broker, events, commands)
 	}
 
 	http.Handle("/", http.FileServer(http.Dir("./static")))
@@ -131,7 +138,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(cfg.Listen, nil))
 }
 
-func startBroadcasting(s *sse.Server, measurements chan Measurement, events chan Event) {
+func startBroadcasting(s *sse.Server, measurements <- chan interface{}, events chan Event) {
 	for {
 		select {
 		case measurement := <-measurements:

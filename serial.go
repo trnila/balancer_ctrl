@@ -26,7 +26,7 @@ type Event struct {
 	data interface{}
 }
 
-func producer(measurements chan <- Measurement, events chan <- Event, commands chan interface{}) {
+func producer(broker *Broker, events chan <- Event, commands chan interface{}) {
 	options := serial.OpenOptions {
 		PortName:        cfg.SerialPath,
 		BaudRate:        cfg.BaudRate,
@@ -91,7 +91,7 @@ func producer(measurements chan <- Measurement, events chan <- Event, commands c
 		if cmd == CMD_MEASUREMENT | CMD_RESPONSE {
 			t := Measurement{}
 			err = binary.Read(rr, binary.LittleEndian, &t)
-			measurements <- t
+			broker.Broadcast(t)
 		} else if cmd == CMD_GETPOS | CMD_RESPONSE {
 			t := TargetPositionResponse{}
 			err = binary.Read(rr, binary.LittleEndian, &t)
