@@ -3,7 +3,6 @@ package main
 import (
 	"time"
 	"math"
-	"math/rand"
 )
 
 func createTargetEvt(X, Y int32) Event {
@@ -60,7 +59,7 @@ func producer_random(broker *Broker, events chan <- Event, commands chan interfa
 			y := math.Sqrt(float64(R*R - x*x));
 
 			meas.POSX = float32(targetX + x)
-			meas.POSY = float32(float64(targetY) + y * float64(sign) + rand.NormFloat64())
+			meas.POSY = float32(float64(targetY) + y * float64(sign))
 
 			if meas.POSX >= 0 && meas.POSX < float32(dim.Width) && meas.POSY >= 0 && meas.POSY < float32(dim.Height) {
 				broker.Broadcast(meas)
